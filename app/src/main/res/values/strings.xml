@@ -59,11 +59,15 @@
     <string name="select_action">Always Show Game Information</string>
     <string name="select_action_desc_on">Game information will be shown on clicking a game</string>
     <string name="select_action_desc_off">Game information will only be shown on long-clicking a game</string>
+    <string name="filter_invalid_files_desc_off">Show files that have been parsed as invalid</string>
+    <string name="filter_invalid_files_desc_on">Hide files that have been parsed as invalid</string>
     <!-- Settings - Game -->
     <string name="game">Game</string>
     <string name="use_custom_settings">Enable Custom Settings</string>
     <string name="use_custom_settings_desc_on">Custom settings are enabled for this game</string>
     <string name="use_custom_settings_desc_off">Custom settings are disabled for this game</string>
+    <string name="export_custom_settings">Export custom settings to text</string>
+    <string name="export_custom_settings_desc">Copy a text with your current settings to share online</string>
     <string name="reset_custom_settings">Reset Custom Settings</string>
     <string name="reset_custom_settings_desc">Reset custom settings to the default values</string>
     <string name="reset_settings_warning">Are you sure you want to reset all settings to the default values? <b>Current settings will be lost</b></string>
@@ -94,6 +98,9 @@
     <string name="respect_display_cutout">Respect Display Cutout</string>
     <string name="respect_display_cutout_enabled">Do not draw UI elements in the cutout area</string>
     <string name="respect_display_cutout_disabled">Allow UI elements to be drawn in the cutout area</string>
+    <string name="enable_foldable_layout">Enable Foldable Layout</string>
+    <string name="enable_foldable_layout_enabled">Folded devices will display game and controller separately</string>
+    <string name="enable_foldable_layout_disabled">Display controller over games even when device is folded</string>
     <!-- Settings - Audio -->
     <string name="audio">Audio</string>
     <string name="disable_audio_output">Disable Audio Output</string>

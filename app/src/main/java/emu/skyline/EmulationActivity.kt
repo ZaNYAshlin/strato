@@ -13,8 +13,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ActivityInfo
 import android.content.res.AssetManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.PointF
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
@@ -23,6 +25,7 @@ import android.net.wifi.WifiManager
 import android.os.*
 import android.util.Log
 import android.util.Rational
+import android.util.TypedValue
 import android.view.*
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -31,7 +34,14 @@ import androidx.core.content.getSystemService
 import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.updateMargins
+import androidx.core.view.updatePadding
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.window.layout.FoldingFeature
+import androidx.window.layout.WindowInfoTracker
+import androidx.window.layout.WindowLayoutInfo
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import emu.skyline.applet.swkbd.SoftwareKeyboardConfig
@@ -49,14 +59,19 @@ import emu.skyline.settings.NativeSettings
 import emu.skyline.utils.ByteBufferSerializable
 import emu.skyline.utils.GpuDriverHelper
 import emu.skyline.utils.serializable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.FutureTask
 import javax.inject.Inject
 import kotlin.math.abs
 
+
 private const val ActionPause = "${BuildConfig.APPLICATION_ID}.ACTION_EMULATOR_PAUSE"
 private const val ActionMute = "${BuildConfig.APPLICATION_ID}.ACTION_EMULATOR_MUTE"
+
+private val Number.toPx get() = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, this.toFloat(), Resources.getSystem().displayMetrics).toInt()
 
 @AndroidEntryPoint
 class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTouchListener, DisplayManager.DisplayListener {
@@ -307,6 +322,14 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
             }
         )
 
+        lifecycleScope.launch(Dispatchers.Main) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                WindowInfoTracker.getOrCreate(this@EmulationActivity)
+                    .windowLayoutInfo(this@EmulationActivity)
+                    .collect { updateCurrentLayout(it) }
+            }
+        }
+
         if (emulationSettings.perfStats) {
             if (emulationSettings.disableFrameThrottling)
                 binding.perfStats.setTextColor(getColor(R.color.colorPerfStatsSecondary))
@@ -482,6 +505,32 @@ class EmulationActivity : AppCompatActivity(), SurfaceHolder.Callback, View.OnTo
                 isGone = binding.onScreenControllerView.isGone
             }
         }
+    }
+
+    /**
+    * Updating the layout depending on type and state of device
+    */
+    private fun updateCurrentLayout(newLayoutInfo: WindowLayoutInfo) {
+        if (!emulationSettings.enableFoldableLayout) return
+        val isFolding = (newLayoutInfo.displayFeatures.find { it is FoldingFeature } as? FoldingFeature)?.let {
+            if (it.isSeparating) {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                if (it.orientation == FoldingFeature.Orientation.HORIZONTAL) {
+                    binding.gameViewContainer.layoutParams.height = it.bounds.top
+                    binding.overlayViewContainer.layoutParams.height = it.bounds.bottom - 48.toPx
+                    binding.overlayViewContainer.updatePadding(0, 0, 0, 24.toPx)
+                }
+            }
+            it.isSeparating
+        } ?: false
+        if (!isFolding) {
+            binding.gameViewContainer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            binding.overlayViewContainer.updatePadding(0, 0, 0, 0)
+            binding.overlayViewContainer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            requestedOrientation = emulationSettings.orientation
+        }
+        binding.gameViewContainer.requestLayout()
+        binding.overlayViewContainer.requestLayout()
     }
 
     /**
